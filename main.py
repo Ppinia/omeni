@@ -1,12 +1,12 @@
 import os
-from flask import Flask, render_template, request
-from flask_sqlalchemy import SQLAlchemy
+from flask import Flask, render_template, request, redirect, url_for
+from sqla_wrapper import SQLAlchemy
 
 app = Flask(__name__)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL", "sqlite:///db.sqlite")
-db = SQLAlchemy(app)
 
+db_url = os.getenv("DATABASE_URL", "sqlite:///db.sqlite").replace("postgres://", "postgresql://", 1)
+db = SQLAlchemy(db_url)
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -22,20 +22,20 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/omeni', methods=['GET', 'POST'])
+@app.route('/omeni')
 def omeni():
-    if request.method == 'GET':
-        return render_template('omeni.html')
-    elif request.method == 'POST':
-        email = request.form.get('email')
-        message = request.form.get('message')
+    return render_template('omeni.html')
 
-        print(email + ' ' + message)
-        msg = Message(email=email, text=message)
-        db.session.add(msg)
-        db.session.commit()
+@app.route("/add-message", methods=["POST"])
+def add_message():
+    username = request.form.get("username")
+    text = request.form.get("text")
 
-        return render_template('omeni.html', alert="message received and saved")
+    message = Message(author=username, text=text)
+    message.save()
+
+    return redirect("/")
+
 
 
 if __name__ == '__main__':
